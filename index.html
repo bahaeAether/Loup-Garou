@@ -505,23 +505,58 @@
 
       function saveRoom(next) {
         if (!next || !roomCode) return;
+        const previous = room;
         next.updatedAt = Date.now();
         room = next;
         render();
-        advanceNightIfReady();
-        closeVoteIfReady();
         if (firebaseDb) {
-          roomRef
-            .set(next)
-            .catch((error) =>
+          roomRef.transaction(
+            (currentValue) => {
+              const current = normalizeRoom(currentValue);
+              return current
+                ? mergeRoomChanges(current, previous, next)
+                : next;
+            },
+            (error) => {
+              if (!error) return;
               showMessage(
                 `Échec de synchronisation Firebase : ${error.message}`,
                 "error",
-              ),
-            );
+              );
+            },
+          );
         } else {
           localStorage.setItem(storageKey(roomCode), JSON.stringify(next));
         }
+        advanceNightIfReady();
+        closeVoteIfReady();
+      }
+
+      function isRecord(value) {
+        return (
+          value !== null &&
+          typeof value === "object" &&
+          !Array.isArray(value)
+        );
+      }
+
+      function mergeRoomChanges(current, previous, next) {
+        if (previous === next) return current;
+        if (isRecord(previous) && isRecord(next)) {
+          const merged = isRecord(current) ? { ...current } : {};
+          for (const key of Object.keys(previous)) {
+            if (!Object.hasOwn(next, key)) delete merged[key];
+          }
+          for (const [key, value] of Object.entries(next)) {
+            merged[key] = Object.hasOwn(previous, key)
+              ? mergeRoomChanges(current?.[key], previous[key], value)
+              : value;
+          }
+          return merged;
+        }
+        return JSON.stringify(previous) === JSON.stringify(next)
+          ? current
+          : next;
       }
 
       function patchRoom(mutator) {
@@ -845,7 +880,7 @@
         );
         const chosen = room.actions?.wolves?.[playerId];
         return `<div class="divider"></div><h3>Choisissez une victime</h3>
-        <p class="muted">Les Loups doivent tous choisir. La cible majoritaire sera attaquée.</p>
+        <p class="muted">Les Loups doivent tous choisir. La cible majoritaire sera attaquée ; en cas d’égalité, personne ne sera attaqué.</p>
         ${chosen ? `<p class="notice success">Ton choix est enregistré.</p>` : `<form id="wolf-form" class="stack"><select name="target" required>${targetOptions(targets)}</select><button type="submit">Valider mon choix</button></form>`}`;
       }
 
@@ -1102,7 +1137,9 @@
       }
 
       function resolveWolfTarget(next) {
-        const votes = Object.values(next.actions.wolves || {});
+        const votes = Object.values(next.actions.wolves || {}).filter(
+          (id) => next.players[id]?.alive && next.players[id].role !== "wolf",
+        );
         if (!votes.length) {
           next.actions.wolfTarget = "";
           return;
@@ -1115,7 +1152,7 @@
         const tied = Object.keys(counts).filter(
           (id) => counts[id] === highest,
         );
-        next.actions.wolfTarget = tied[Math.floor(Math.random() * tied.length)];
+        next.actions.wolfTarget = tied.length === 1 ? tied[0] : "";
       }
 
       function finishNight() {
