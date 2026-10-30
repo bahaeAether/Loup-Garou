@@ -1036,16 +1036,20 @@
       }
 
       function beginNight() {
-        patchRoom((next) => {
-          next.phase = "night-seer";
-          next.actions = {};
-          next.votes = {};
-          next.lastSeerResult = "";
-          next.narrator = "La nuit tombe. Tout le village s’endort.";
-          next.phaseEndsAt = Date.now() + 45000;
-          addLog(next, "La nuit tombe.");
-        });
+        patchRoom((next) => startNight(next));
         advanceNightIfReady();
+      }
+
+      function startNight(next, announcement = "") {
+        next.phase = "night-seer";
+        next.actions = {};
+        next.votes = {};
+        next.lastSeerResult = "";
+        next.narrator = announcement
+          ? `${announcement} La nuit tombe. Tout le village s’endort.`
+          : "La nuit tombe. Tout le village s’endort.";
+        next.phaseEndsAt = Date.now() + 45000;
+        addLog(next, "La nuit tombe.");
       }
 
       function beginVote() {
@@ -1109,7 +1113,7 @@
         );
         const highest = Math.max(...Object.values(counts));
         const tied = Object.keys(counts).filter(
-          (id) => counts[id] === highestX,
+          (id) => counts[id] === highest,
         );
         next.actions.wolfTarget = tied[Math.floor(Math.random() * tied.length)];
       }
@@ -1149,9 +1153,11 @@
           Object.values(next.votes || {}).forEach((id) => {
             if (next.players[id]?.alive) counts[id] = (counts[id] || 0) + 1;
           });
+          let announcement;
           if (!Object.keys(counts).length) {
-            next.narrator =
+            announcement =
               "Aucun vote n’a été exprimé. Le village est resté indécis.";
+            next.narrator = announcement;
             addLog(next, "Le vote se termine sans élimination.");
           } else {
             const highest = Math.max(...Object.values(counts));
@@ -1159,19 +1165,21 @@
               (id) => counts[id] === highest,
             );
             if (winners.length > 1) {
-              next.narrator = "Égalité ! Personne n’est éliminé aujourd’hui.";
+              announcement = "Égalité ! Personne n’est éliminé aujourd’hui.";
+              next.narrator = announcement;
               addLog(next, "Le vote se termine sur une égalité.");
             } else {
               const eliminatedId = winners[0];
               next.players[eliminatedId].alive = false;
-              next.narrator = `${next.players[eliminatedId].name} est éliminé·e par le village.`;
-              addLog(next, next.narrator);
+              announcement = `${next.players[eliminatedId].name} est éliminé·e par le village.`;
+              next.narrator = announcement;
+              addLog(next, announcement);
             }
           }
-          next.phase = "day";
           next.phaseEndsAt = 0;
           next.votes = {};
           checkWinner(next);
+          if (!next.winner) startNight(next, announcement);
         });
       }
 
