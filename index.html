@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111827" />
+    <title>Les Loups de Thiercelieux — partie multijoueur</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: #101522;
+        color: #f4f4f5;
+        font-synthesis: none;
+        --panel: #1b2333;
+        --panel-light: #263248;
+        --muted: #a7b0c1;
+        --accent: #f0b35b;
+        --danger: #ef7777;
+        --green: #67d5a5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(ellipse at top, #263248 0, #101522 58%);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        color: #171923;
+        background: var(--accent);
+        font-weight: 750;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        filter: brightness(1.08);
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+      }
+      button.secondary {
+        color: #f4f4f5;
+        background: #3a465c;
+      }
+      button.danger {
+        color: #fff;
+        background: #a83e4b;
+      }
+      button.ghost {
+        color: #f4f4f5;
+        background: transparent;
+        border: 1px solid #536078;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 0.8rem 0.9rem;
+        color: #f4f4f5;
+        background: #111827;
+        border: 1px solid #536078;
+        border-radius: 10px;
+      }
+      input:focus,
+      select:focus,
+      button:focus-visible {
+        outline: 3px solid #f0b35b88;
+        outline-offset: 2px;
+      }
+      .wrap {
+        width: min(1050px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2rem 0 5rem;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(1.7rem, 5vw, 2.7rem);
+        letter-spacing: -0.04em;
+      }
+      h2 {
+        margin: 0 0 1rem;
+        font-size: 1.3rem;
+      }
+      h3 {
+        margin: 0 0 0.7rem;
+      }
+      p {
+        line-height: 1.55;
+      }
+      .subtitle,
+      .muted,
+      small {
+        color: var(--muted);
+      }
+      .subtitle {
+        margin: 0.45rem 0 0;
+      }
+      .card {
+        padding: clamp(1rem, 3vw, 1.5rem);
+        background: #1b2333ee;
+        border: 1px solid #ffffff14;
+        border-radius: 18px;
+        box-shadow: 0 15px 40px #0002;
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+      .two-col {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+      }
+      .stack {
+        display: grid;
+        gap: 0.8rem;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+      }
+      .space-between {
+        justify-content: space-between;
+      }
+      .center {
+        text-align: center;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .eyebrow {
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+      .room-code {
+        color: var(--accent);
+        font-size: clamp(2.5rem, 12vw, 5rem);
+        letter-spacing: 0.2em;
+        font-weight: 900;
+        line-height: 1.1;
+      }
+      .pill {
+        display: inline-flex;
+        gap: 0.35rem;
+        align-items: center;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: #344158;
+        color: #e3e8f0;
+        font-size: 0.86rem;
+      }
+      .pill.alive {
+        color: #b7f5d6;
+        background: #1e493b;
+      }
+      .pill.dead {
+        color: #ffd2d2;
+        background: #512b35;
+      }
+      .list {
+        display: grid;
+        gap: 0.6rem;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+      }
+      .player-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.8rem;
+        background: #11182788;
+        border-radius: 10px;
+      }
+      .notice {
+        margin: 0;
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        color: #dce5f4;
+        background: #27364d;
+      }
+      .notice.error {
+        color: #ffe1e1;
+        background: #532b35;
+      }
+      .notice.success {
+        color: #cff7e3;
+        background: #214638;
+      }
+      .role-card {
+        width: min(330px, 100%);
+        min-height: 210px;
+        margin: 0.5rem auto;
+        padding: 2rem 1.2rem;
+        display: grid;
+        align-content: center;
+        gap: 0.8rem;
+        text-align: center;
+        background: linear-gradient(145deg, #343e56, #1d273a);
+        border: 2px solid #66728b;
+        border-radius: 20px;
+        cursor: pointer;
+      }
+      .role-card.revealed {
+        border-color: var(--accent);
+        background: linear-gradient(145deg, #4b3b2b, #272435);
+        cursor: default;
+      }
+      .role-name {
+        font-size: 2rem;
+        font-weight: 900;
+      }
+      .timer {
+        font-size: 2rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+      }
+      #qr {
+        min-height: 180px;
+        display: grid;
+        place-items: center;
+      }
+      #qr canvas,
+      #qr img {
+        padding: 8px;
+        background: #fff;
+        border-radius: 8px;
+      }
+      .error-line {
+        color: #ffaaaa;
+        min-height: 1.3em;
+      }
+      footer {
+        position: fixed;
+        z-index: 3;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.6rem 1rem;
+        text-align: center;
+        color: #dce5f4;
+        background: #182133f2;
+        border-top: 1px solid #ffffff1a;
+        font-size: 0.88rem;
+      }
+      footer.local {
+        color: #ffe6bc;
+        background: #68471df2;
+      }
+      .divider {
+        height: 1px;
+        background: #ffffff19;
+        margin: 0.3rem 0;
+      }
+      .log-entry {
+        padding: 0.55rem 0.7rem;
+        border-left: 3px solid var(--accent);
+        background: #11182788;
+        border-radius: 0 8px 8px 0;
+      }
+      @media (max-width: 600px) {
+        .wrap {
+          width: min(100% - 1rem, 1050px);
+          padding-top: 1rem;
+        }
+        header {
+          flex-direction: column;
+        }
+        .row button {
+          flex: 1 1 auto;
+        }
+        footer {
+          font-size: 0.78rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <header>
+        <div>
+          <h1>Les Loups de Thiercelieux</h1>
+          <p class="subtitle">
+            Une partie, un meneur, et tout le village sur son téléphone.
+          </p>
+        </div>
+        <span id="connection-pill" class="pill">Connexion…</span>
+      </header>
+      <div
+        id="message"
+        class="notice hidden"
+        role="status"
+        aria-live="polite"
+      ></div>
+      <div id="app" class="grid"></div>
+    </main>
+    <footer id="mode-banner" class="hidden"></footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+      // 1. CONFIGURATION FIREBASE — Laissez les valeurs vides pour jouer en mode local.
+      const firebaseConfig = {
+        apiKey: "AIzaSyAX9BgPAh_NGZ8DdPqAnLj1HmMwYH54BRA",
+        authDomain: "loup-garou-f147f.firebaseapp.com",
+        databaseURL:
+          "https://loup-garou-f147f-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "loup-garou-f147f",
+        storageBucket: "loup-garou-f147f.firebasestorage.app",
+        messagingSenderId: "343199427221",
+        appId: "1:343199427221:web:d00405070ed85bd305899c",
+      };
+
+      const ROLE_INFO = {
+        wolf: {
+          name: "Loup-garou",
+          description:
+            "Chaque nuit, choisis avec les autres Loups une personne à éliminer.",
+        },
+        seer: {
+          name: "Voyante",
+          description:
+            "Chaque nuit, découvre le rôle d'une personne encore en vie.",
+        },
+        witch: {
+          name: "Sorcière",
+          description:
+            "Tu as une potion de vie et une potion de mort pour toute la partie.",
+        },
+        villager: {
+          name: "Villageois",
+          description:
+            "Écoute, échange tes soupçons et vote pour éliminer un Loup.",
+        },
+      };
+      const NIGHT_PHASES = ["seer", "wolves", "witch"];
+      const app = document.getElementById("app");
+      const messageBox = document.getElementById("message");
+      const modeBanner = document.getElementById("mode-banner");
+      const connectionPill = document.getElementById("connection-pill");
+      const roomCodeFromUrl = new URLSearchParams(location.search).get("salle");
+      let firebaseDb = null;
+      let roomRef = null;
+      let room = null;
+      let roomCode = "";
+      let isHost = false;
+      let playerId = "";
+      let localMode = true;
+      let unsubscribe = null;
+      let timerId = null;
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[char],
+        );
+      }
+
+      function showMessage(text, kind = "") {
+        messageBox.textContent = text;
+        messageBox.className = text ? `notice ${kind}` : "notice hidden";
+      }
+
+      function setConnectionState(text, good = false) {
+        connectionPill.textContent = text;
+        connectionPill.className = `pill${good ? " alive" : ""}`;
+      }
+
+      function createId() {
+        return crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+
+      function makeCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        return Array.from(
+          { length: 4 },
+          () => chars[Math.floor(Math.random() * chars.length)],
+        ).join("");
+      }
+
+      function firebaseConfigured() {
+        return Boolean(
+          firebaseConfig.apiKey &&
+          firebaseConfig.databaseURL &&
+          firebaseConfig.projectId &&
+          firebaseConfig.appId,
+        );
+      }
+
+      function storageKey(code) {
+        return `thiercelieux-room-${code}`;
+      }
+
+      function normalizeRoom(value) {
+        if (
+          !value ||
+          typeof value !== "object" ||
+          typeof value.code !== "string"
+        )
+          return null;
+        if (
+          value.players !== undefined &&
+          (!value.players ||
+            typeof value.players !== "object" ||
+            Array.isArray(value.players))
+        )
+          return null;
+        return {
+          ...value,
+          players: value.players || {},
+          actions: value.actions || {},
+          votes: value.votes || {},
+          witchPotions: value.witchPotions || { heal: false, poison: false },
+          log: Array.isArray(value.log) ? value.log : [],
+        };
+      }
+
+      function listenToRoom(code) {
+        roomCode = code.toUpperCase();
+        if (firebaseDb) {
+          roomRef = firebaseDb.ref(`rooms/${roomCode}`);
+          unsubscribe = roomRef.on(
+            "value",
+            (snapshot) => {
+              const next = normalizeRoom(snapshot.val());
+              if (!next) {
+                room = null;
+                setConnectionState("Firebase connecté · salle absente", true);
+                render();
+                return;
+              }
+              setConnectionState("Firebase connecté", true);
+              room = next;
+              render();
+              advanceNightIfReady();
+              closeVoteIfReady();
+            },
+            (error) => {
+              showMessage(`Erreur Firebase : ${error.message}`, "error");
+              setConnectionState("Erreur de connexion");
+            },
+          );
+        } else {
+          const saved = localStorage.getItem(storageKey(roomCode));
+          room = saved ? normalizeRoom(JSON.parse(saved)) : null;
+          window.addEventListener("storage", onStorageChange);
+          render();
+        }
+      }
+
+      function onStorageChange(event) {
+        if (event.key !== storageKey(roomCode)) return;
+        try {
+          room = event.newValue
+            ? normalizeRoom(JSON.parse(event.newValue))
+            : null;
+          render();
+          advanceNightIfReady();
+          closeVoteIfReady();
+        } catch (error) {
+          showMessage(
+            `Impossible de lire la partie locale : ${error.message}`,
+            "error",
+          );
+        }
+      }
+
+      function saveRoom(next) {
+        if (!next || !roomCode) return;
+        next.updatedAt = Date.now();
+        room = next;
+        render();
+        advanceNightIfReady();
+        closeVoteIfReady();
+        if (firebaseDb) {
+          roomRef
+            .set(next)
+            .catch((error) =>
+              showMessage(
+                `Échec de synchronisation Firebase : ${error.message}`,
+                "error",
+              ),
+            );
+        } else {
+          localStorage.setItem(storageKey(roomCode), JSON.stringify(next));
+        }
+      }
+
+      function patchRoom(mutator) {
+        if (!room) return;
+        const next = JSON.parse(JSON.stringify(room));
+        mutator(next);
+        saveRoom(next);
+      }
+
+      function playerList(source = room) {
+        return Object.entries(source?.players || {}).map(([id, player]) => ({
+          id,
+          ...player,
+        }));
+      }
+
+      function livingPlayers(source = room) {
+        return playerList(source).filter((player) => player.alive);
+      }
+
+      function currentPlayer() {
+        return room?.players?.[playerId] || null;
+      }
+
+      function activePlayerKey(code) {
+        return `thiercelieux-active-player-${code}`;
+      }
+
+      function render() {
+        if (timerId) clearInterval(timerId);
+        if (!roomCode) {
+          renderHome();
+          return;
+        }
+        if (!room) {
+          renderMissingRoom();
+          return;
+        }
+        if (isHost) renderHost();
+        else if (currentPlayer()) renderPlayer();
+        else renderJoin();
+        startTimerDisplay();
+      }
+
+      function renderHome() {
+        app.innerHTML = `
+        <section class="grid two-col">
+          <div class="card stack">
+            <span class="eyebrow">Meneur</span>
+            <h2>Prépare une nouvelle salle</h2>
+            <p class="muted">Crée une partie, puis projette le code ou le QR pour que les joueurs te rejoignent.</p>
+            <button id="create-room">Créer une salle</button>
+            <p class="error-line" id="home-error" aria-live="polite"></p>
+          </div>
+          <div class="card stack">
+            <span class="eyebrow">Joueur</span>
+            <h2>Rejoins une partie</h2>
+            <form id="join-by-code" class="stack">
+              <label for="room-code-input">Code de 4 lettres</label>
+              <input id="room-code-input" maxlength="4" pattern="[A-Za-z]{4}" autocomplete="off" required>
+              <button class="secondary" type="submit">Continuer</button>
+            </form>
+          </div>
+        </section>`;
+        document
+          .getElementById("create-room")
+          .addEventListener("click", createRoom);
+        document
+          .getElementById("join-by-code")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            const code = document
+              .getElementById("room-code-input")
+              .value.trim()
+              .toUpperCase();
+            if (!/^[A-Z]{4}$/.test(code)) return;
+            openRoom(code, false);
+          });
+      }
+
+      function renderMissingRoom() {
+        app.innerHTML = `<section class="card stack center">
+        <span class="eyebrow">Salle ${escapeHtml(roomCode)}</span>
+        <h2>Salle introuvable</h2>
+        <p class="muted">Vérifie le code ou demande au meneur de créer une salle avant de rejoindre.</p>
+        <div><button class="secondary" id="back-home">Retour à l’accueil</button></div>
+      </section>`;
+        document
+          .getElementById("back-home")
+          .addEventListener("click", () => (location.href = location.pathname));
+      }
+
+      function renderJoin() {
+        app.innerHTML = `<section class="card stack" style="max-width:520px;margin:auto">
+        <span class="eyebrow">Salle ${escapeHtml(roomCode)}</span>
+        <h2>Choisis ton prénom</h2>
+        <p class="muted">Utilise exactement le même prénom si tu dois rouvrir cette page pendant la partie.</p>
+        <form id="join-form" class="stack">
+          <label for="player-name">Prénom</label>
+          <input id="player-name" maxlength="24" autocomplete="given-name" required>
+          <button type="submit">Rejoindre</button>
+        </form>
+        <p class="error-line" id="join-error" aria-live="polite"></p>
+      </section>`;
+        const rememberedId = sessionStorage.getItem(activePlayerKey(roomCode));
+        if (rememberedId && room.players[rememberedId]) {
+          playerId = rememberedId;
+          app.innerHTML = "";
+          render();
+          return;
+        }
+        document
+          .getElementById("join-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            const name = document.getElementById("player-name").value.trim();
+            const error = document.getElementById("join-error");
+            if (!name) return;
+            const existing = playerList().find(
+              (player) =>
+                player.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+            );
+            if (existing) {
+              playerId = existing.id;
+              sessionStorage.setItem(activePlayerKey(roomCode), playerId);
+              app.innerHTML = "";
+              render();
+              return;
+            }
+            if (room.started) {
+              error.textContent =
+                "La partie a déjà commencé. Attends la prochaine partie pour rejoindre.";
+              return;
+            }
+            playerId = createId();
+            sessionStorage.setItem(activePlayerKey(roomCode), playerId);
+            patchRoom((next) => {
+              next.players[playerId] = {
+                name,
+                alive: true,
+                cardSeen: false,
+                role: null,
+                joinedAt: Date.now(),
+              };
+            });
+          });
+      }
+
+      function renderHost() {
+        const players = playerList();
+        const readyCount = players.filter((player) => player.cardSeen).length;
+        const isFinished = room.phase === "ended";
+        const canStart = players.length >= 4 && !room.started;
+        const currentPhaseLabel = phaseLabel(room.phase);
+        app.innerHTML = `
+        <section class="grid two-col">
+          <div class="card stack center">
+            <span class="eyebrow">Écran du meneur · ${escapeHtml(currentPhaseLabel)}</span>
+            <div class="room-code">${escapeHtml(roomCode)}</div>
+            <p class="muted">Code à saisir ou à scanner pour rejoindre</p>
+            <div id="qr"></div>
+            <p class="muted" style="overflow-wrap:anywhere">${escapeHtml(invitationUrl())}</p>
+            <div class="row" style="justify-content:center">
+              <span class="pill">${players.length} joueur${players.length > 1 ? "s" : ""}</span>
+              ${room.started ? `<span class="pill">${readyCount} / ${players.length} cartes vues</span>` : ""}
+            </div>
+          </div>
+          <div class="card stack">
+            <div class="row space-between">
+              <div><span class="eyebrow">Village</span><h2>Joueurs connectés</h2></div>
+              ${room.started && !isFinished ? `<span class="timer" id="timer"></span>` : ""}
+            </div>
+            ${
+              players.length
+                ? `<ul class="list">${players
+                    .map(
+                      (player) => `<li class="player-row">
+              <span>${escapeHtml(player.name)}</span><span class="pill ${player.alive ? "alive" : "dead"}">${player.alive ? "En vie" : "Éliminé"}</span>
+            </li>`,
+                    )
+                    .join("")}</ul>`
+                : `<p class="muted">En attente des joueurs…</p>`
+            }
+            ${renderHostControls(canStart, isFinished)}
+          </div>
+        </section>
+        <section class="grid two-col">
+          <div class="card stack">
+            <span class="eyebrow">Narrateur</span>
+            <h2>${escapeHtml(room.narrator || "Bienvenue à Thiercelieux.")}</h2>
+            ${room.lastSeerResult ? `<p class="notice">La Voyante a découvert : ${escapeHtml(room.lastSeerResult)}</p>` : ""}
+            ${room.phase === "vote" ? `<p class="notice">${Object.keys(room.votes || {}).length} / ${livingPlayers().length} vote(s) reçu(s)</p>` : ""}
+            ${room.winner ? `<p class="notice success">Victoire des ${room.winner === "village" ? "villageois" : "Loups-garous"} !</p>` : ""}
+          </div>
+          <div class="card stack">
+            <span class="eyebrow">Chronique du village</span>
+            ${
+              room.log?.length
+                ? room.log
+                    .slice(-6)
+                    .reverse()
+                    .map(
+                      (item) =>
+                        `<div class="log-entry">${escapeHtml(item)}</div>`,
+                    )
+                    .join("")
+                : `<p class="muted">Les événements de la partie apparaîtront ici.</p>`
+            }
+          </div>
+        </section>`;
+        renderQr();
+        bindHostControls(canStart, isFinished);
+      }
+
+      function renderHostControls(canStart, isFinished) {
+        if (!room.started)
+          return `<p class="muted">${canStart ? "Les joueurs sont prêts. Tu peux distribuer les rôles." : "Il faut au moins 4 joueurs pour distribuer les rôles."}</p>
+        <button id="start-game" ${canStart ? "" : "disabled"}>Distribuer les rôles</button>`;
+        if (isFinished) return `<button id="new-game">Nouvelle partie</button>`;
+        if (room.phase === "ready")
+          return `<button id="start-night">La nuit tombe</button>`;
+        if (room.phase === "day")
+          return `<div class="stack"><p class="muted">Le village débat. Le vote peut commencer quand tu le souhaites.</p><button id="start-vote">Passer au vote maintenant</button></div>`;
+        if (room.phase === "vote")
+          return `<button id="close-vote" ${Object.keys(room.votes || {}).length < livingPlayers().length ? "disabled" : ""}>Clore le vote</button>`;
+        if (room.phase.startsWith("night-"))
+          return `<div class="stack"><p class="muted">La nuit avance automatiquement lorsque les actions sont terminées.</p><button class="secondary" id="skip-phase">Passer cette étape</button></div>`;
+        return "";
+      }
+
+      function bindHostControls(canStart, isFinished) {
+        const start = document.getElementById("start-game");
+        if (start)
+          start.addEventListener("click", () => {
+            if (!canStart) return;
+            patchRoom((next) => {
+              assignRoles(next);
+              next.started = true;
+              next.phase = "ready";
+              next.narrator =
+                "Les rôles sont distribués. Regardez votre carte en secret.";
+              addLog(next, "Les rôles ont été distribués.");
+            });
+          });
+        const startNight = document.getElementById("start-night");
+        if (startNight) startNight.addEventListener("click", beginNight);
+        const startVote = document.getElementById("start-vote");
+        if (startVote) startVote.addEventListener("click", beginVote);
+        const closeVote = document.getElementById("close-vote");
+        if (closeVote) closeVote.addEventListener("click", closeVoteNow);
+        const skip = document.getElementById("skip-phase");
+        if (skip) skip.addEventListener("click", advanceNightPhase);
+        const newGame = document.getElementById("new-game");
+        if (newGame) newGame.addEventListener("click", resetGame);
+      }
+
+      function renderPlayer() {
+        const player = currentPlayer();
+        const role = player.role ? ROLE_INFO[player.role] : null;
+        const canAct = player.alive && !room.winner;
+        let actionPanel = "";
+        if (room.phase === "night-seer" && player.role === "seer" && canAct)
+          actionPanel = seerAction();
+        if (room.phase === "night-wolves" && player.role === "wolf" && canAct)
+          actionPanel = wolfAction();
+        if (room.phase === "night-witch" && player.role === "witch" && canAct)
+          actionPanel = witchAction();
+        if (room.phase === "vote" && canAct) actionPanel = voteAction();
+        const phaseHint = player.alive
+          ? playerPhaseHint(player)
+          : "Tu es éliminé·e. Observe la suite de la partie sans révéler ta carte.";
+        app.innerHTML = `
+        <section class="grid two-col">
+          <div class="card stack center">
+            <span class="eyebrow">${escapeHtml(player.name)} · ${escapeHtml(phaseLabel(room.phase))}</span>
+            <div class="role-card ${player.cardSeen ? "revealed" : ""}" id="role-card" role="button" tabindex="0" aria-label="${player.cardSeen ? "Carte révélée" : "Révéler ma carte"}">
+              ${player.cardSeen ? `<div class="role-name">${escapeHtml(role?.name || "Villageois")}</div><div>${escapeHtml(role?.description || "")}</div>` : `<div class="role-name">?</div><div>Touche ta carte pour découvrir ton rôle en secret.</div>`}
+            </div>
+            <p class="muted">${escapeHtml(phaseHint)}</p>
+          </div>
+          <div class="card stack">
+            <div class="row space-between"><div><span class="eyebrow">La partie</span><h2>${escapeHtml(room.narrator || phaseLabel(room.phase))}</h2></div><span class="timer" id="timer"></span></div>
+            ${actionPanel}
+            ${room.lastSeerResult && player.role === "seer" ? `<p class="notice">Ta dernière vision : ${escapeHtml(room.lastSeerResult)}</p>` : ""}
+            ${!player.alive ? `<p class="notice">Tu peux suivre la partie, mais tu ne peux plus voter ni agir.</p>` : ""}
+          </div>
+        </section>`;
+        const card = document.getElementById("role-card");
+        const reveal = () => {
+          if (player.cardSeen) return;
+          patchRoom((next) => {
+            next.players[playerId].cardSeen = true;
+            const seen = Object.values(next.players).filter(
+              (item) => item.cardSeen,
+            ).length;
+            next.narrator = `Cartes vues : ${seen} / ${Object.keys(next.players).length}`;
+          });
+        };
+        card.addEventListener("click", reveal);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            reveal();
+          }
+        });
+        bindPlayerActions();
+      }
+
+      function seerAction() {
+        const targets = livingPlayers().filter(
+          (player) => player.id !== playerId,
+        );
+        const already = Boolean(room.actions?.seer);
+        return `<div class="divider"></div><h3>Choisis une personne à sonder</h3>
+        ${already ? `<p class="notice success">Vision reçue pour cette nuit.</p>` : `<form id="seer-form" class="stack"><select name="target" required>${targetOptions(targets)}</select><button type="submit">Découvrir son rôle</button></form>`}`;
+      }
+
+      function wolfAction() {
+        const targets = livingPlayers().filter(
+          (player) => player.role !== "wolf",
+        );
+        const chosen = room.actions?.wolves?.[playerId];
+        return `<div class="divider"></div><h3>Choisissez une victime</h3>
+        <p class="muted">Les Loups doivent tous choisir. La cible majoritaire sera attaquée.</p>
+        ${chosen ? `<p class="notice success">Ton choix est enregistré.</p>` : `<form id="wolf-form" class="stack"><select name="target" required>${targetOptions(targets)}</select><button type="submit">Valider mon choix</button></form>`}`;
+      }
+
+      function witchAction() {
+        const alive = livingPlayers().filter(
+          (player) => player.id !== playerId,
+        );
+        const victimId = room.actions?.wolfTarget;
+        const victim = room.players[victimId];
+        const used = room.witchPotions || { heal: false, poison: false };
+        const already = Boolean(room.actions?.witchDone);
+        return `<div class="divider"></div><h3>À toi, Sorcière</h3>
+        ${victim ? `<p class="notice">Les Loups ont attaqué ${escapeHtml(victim.name)}.</p>` : ""}
+        ${
+          already
+            ? `<p class="notice success">Tu as terminé ton action cette nuit.</p>`
+            : `<form id="witch-form" class="stack">
+          ${victim && !used.heal ? `<label class="row"><input style="width:auto" type="checkbox" name="heal"> Sauver ${escapeHtml(victim.name)} (potion de vie)</label>` : ""}
+          ${!used.poison ? `<label>Ou empoisonner quelqu’un</label><select name="poison"><option value="">Ne pas utiliser la potion de mort</option>${targetOptions(alive)}</select>` : ""}
+          <button type="submit">Valider</button>
+        </form>`
+        }`;
+      }
+
+      function voteAction() {
+        const already = Boolean(room.votes?.[playerId]);
+        return `<div class="divider"></div><h3>Vote du village</h3>
+        ${already ? `<p class="notice success">Ton vote est enregistré.</p>` : `<form id="vote-form" class="stack"><select name="target" required>${targetOptions(livingPlayers().filter((player) => player.id !== playerId))}</select><button type="submit">Voter</button></form>`}`;
+      }
+
+      function targetOptions(targets) {
+        if (!targets.length)
+          return `<option value="">Aucune cible disponible</option>`;
+        return `<option value="" selected disabled>Choisir une personne…</option>${targets.map((target) => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.name)}</option>`).join("")}`;
+      }
+
+      function bindPlayerActions() {
+        const seerForm = document.getElementById("seer-form");
+        if (seerForm)
+          seerForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const targetId = new FormData(seerForm).get("target");
+            const target = room.players[targetId];
+            if (!target || !target.alive)
+              return showMessage(
+                "Cette personne n’est plus une cible valide.",
+                "error",
+              );
+            patchRoom((next) => {
+              next.actions.seer = targetId;
+              next.lastSeerResult =
+                ROLE_INFO[target.role]?.name || "Villageois";
+              next.narrator = "La Voyante a reçu sa vision.";
+              addLog(next, "La Voyante a consulté une carte.");
+            });
+            if (isHost) advanceNightIfReady();
+          });
+        const wolfForm = document.getElementById("wolf-form");
+        if (wolfForm)
+          wolfForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const targetId = new FormData(wolfForm).get("target");
+            if (!room.players[targetId]?.alive)
+              return showMessage(
+                "Cette personne n’est plus une cible valide.",
+                "error",
+              );
+            patchRoom((next) => {
+              next.actions.wolves[playerId] = targetId;
+            });
+            if (isHost) advanceNightIfReady();
+          });
+        const witchForm = document.getElementById("witch-form");
+        if (witchForm)
+          witchForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const data = new FormData(witchForm);
+            const poisonId = data.get("poison");
+            patchRoom((next) => {
+              next.actions.witchDone = true;
+              if (data.has("heal") && next.actions.wolfTarget) {
+                next.actions.healed = true;
+                next.witchPotions.heal = true;
+              }
+              if (poisonId) {
+                if (!next.players[poisonId]?.alive) return;
+                next.actions.poisoned = poisonId;
+                next.witchPotions.poison = true;
+              }
+            });
+            if (isHost) advanceNightIfReady();
+          });
+        const voteForm = document.getElementById("vote-form");
+        if (voteForm)
+          voteForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const targetId = new FormData(voteForm).get("target");
+            if (!room.players[targetId]?.alive)
+              return showMessage(
+                "Cette personne n’est plus une cible valide.",
+                "error",
+              );
+            patchRoom((next) => {
+              next.votes[playerId] = targetId;
+            });
+          });
+      }
+
+      function phaseLabel(phase) {
+        return (
+          {
+            lobby: "Salle d’attente",
+            ready: "Rôles distribués",
+            "night-seer": "Nuit · Voyante",
+            "night-wolves": "Nuit · Loups",
+            "night-witch": "Nuit · Sorcière",
+            day: "Le jour se lève",
+            vote: "Vote du village",
+            ended: "Partie terminée",
+          }[phase] || "Partie"
+        );
+      }
+
+      function playerPhaseHint(player) {
+        if (!room.started) return "En attente de la distribution des rôles.";
+        if (!player.cardSeen)
+          return "Révèle ta carte en secret avant que la partie commence.";
+        if (
+          room.phase.startsWith("night-") &&
+          ["seer", "wolf", "witch"].includes(player.role)
+        )
+          return "La nuit est tombée. Suis les instructions affichées ici, sans parler.";
+        if (room.phase.startsWith("night-"))
+          return "La nuit est tombée. Garde les yeux fermés et attends le jour.";
+        if (room.phase === "day")
+          return "Le jour est levé. Échangez vos soupçons avec le village.";
+        if (room.phase === "vote")
+          return "Choisis la personne que tu veux éliminer.";
+        if (room.phase === "ended") return "La partie est terminée.";
+        return room.narrator || "";
+      }
+
+      function invitationUrl() {
+        const url = new URL(location.href);
+        url.search = `?salle=${encodeURIComponent(roomCode)}`;
+        url.hash = "";
+        return url.href;
+      }
+
+      function renderQr() {
+        const target = document.getElementById("qr");
+        if (!target) return;
+        if (window.QRCode)
+          new QRCode(target, {
+            text: invitationUrl(),
+            width: 172,
+            height: 172,
+            colorDark: "#101522",
+            colorLight: "#ffffff",
+          });
+        else
+          target.innerHTML = `<span class="muted">QR indisponible — utilise le lien ci-dessous.</span>`;
+      }
+
+      function assignRoles(next) {
+        const ids = Object.keys(next.players);
+        const roles = [
+          "wolf",
+          "seer",
+          "witch",
+          ...Array(Math.max(0, ids.length - 3)).fill("villager"),
+        ];
+        for (let i = roles.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [roles[i], roles[j]] = [roles[j], roles[i]];
+        }
+        ids.forEach((id, index) => {
+          next.players[id].role = roles[index];
+          next.players[id].alive = true;
+          next.players[id].cardSeen = false;
+        });
+        next.actions = {};
+        next.votes = {};
+        next.witchPotions = { heal: false, poison: false };
+        next.lastSeerResult = "";
+        next.winner = "";
+        next.log = [];
+      }
+
+      function beginNight() {
+        patchRoom((next) => {
+          next.phase = "night-seer";
+          next.actions = {};
+          next.votes = {};
+          next.lastSeerResult = "";
+          next.narrator = "La nuit tombe. Tout le village s’endort.";
+          next.phaseEndsAt = Date.now() + 45000;
+          addLog(next, "La nuit tombe.");
+        });
+        advanceNightIfReady();
+      }
+
+      function beginVote() {
+        patchRoom((next) => {
+          next.phase = "vote";
+          next.votes = {};
+          next.narrator =
+            "Le village débat puis vote pour éliminer un suspect.";
+          next.phaseEndsAt = Date.now() + 180000;
+          addLog(next, "Le village ouvre le vote.");
+        });
+      }
+
+      function advanceNightIfReady() {
+        if (!isHost || !room?.phase?.startsWith("night-")) return;
+        const living = livingPlayers();
+        const phase = room.phase;
+        let ready = false;
+        if (phase === "night-seer")
+          ready =
+            !living.some((player) => player.role === "seer") ||
+            Boolean(room.actions?.seer);
+        if (phase === "night-wolves") {
+          const wolves = living.filter((player) => player.role === "wolf");
+          ready =
+            !wolves.length ||
+            wolves.every((player) => room.actions?.wolves?.[player.id]);
+        }
+        if (phase === "night-witch")
+          ready =
+            !living.some((player) => player.role === "witch") ||
+            Boolean(room.actions?.witchDone);
+        if (ready) advanceNightPhase();
+      }
+
+      function advanceNightPhase() {
+        if (!isHost || !room?.phase?.startsWith("night-")) return;
+        const phaseIndex = NIGHT_PHASES.indexOf(room.phase.slice(6));
+        if (phaseIndex < NIGHT_PHASES.length - 1) {
+          patchRoom((next) => {
+            if (next.phase === "night-wolves") resolveWolfTarget(next);
+            next.phase = `night-${NIGHT_PHASES[phaseIndex + 1]}`;
+            next.phaseEndsAt = Date.now() + 45000;
+            next.narrator =
+              next.phase === "night-wolves"
+                ? "Les Loups se réveillent et choisissent une victime."
+                : "La Sorcière se réveille. Elle peut utiliser ses potions.";
+          });
+        } else finishNight();
+      }
+
+      function resolveWolfTarget(next) {
+        const votes = Object.values(next.actions.wolves || {});
+        if (!votes.length) {
+          next.actions.wolfTarget = "";
+          return;
+        }
+        const counts = votes.reduce(
+          (result, id) => ((result[id] = (result[id] || 0) + 1), result),
+          {},
+        );
+        const highest = Math.max(...Object.values(counts));
+        const tied = Object.keys(counts).filter(
+          (id) => counts[id] === highestX,
+        );
+        next.actions.wolfTarget = tied[Math.floor(Math.random() * tied.length)];
+      }
+
+      function finishNight() {
+        patchRoom((next) => {
+          const casualties = new Set();
+          if (next.actions.wolfTarget && !next.actions.healed)
+            casualties.add(next.actions.wolfTarget);
+          if (next.actions.poisoned) casualties.add(next.actions.poisoned);
+          for (const id of casualties) {
+            if (!next.players[id]?.alive) continue;
+            next.players[id].alive = false;
+            addLog(
+              next,
+              `${next.players[id].name} a été éliminé·e pendant la nuit.`,
+            );
+          }
+          next.phase = "day";
+          next.phaseEndsAt = Date.now() + 180000;
+          next.narrator = casualties.size
+            ? `Le jour se lève. ${[...casualties]
+                .map((id) => next.players[id]?.name)
+                .filter(Boolean)
+                .join(" et ")} ne se réveillent pas.`
+            : "Le jour se lève. Personne n’a été éliminé cette nuit.";
+          addLog(next, next.narrator);
+          next.actions = {};
+          checkWinner(next);
+        });
+      }
+
+      function closeVoteNow() {
+        if (!isHost || room.phase !== "vote") return;
+        patchRoom((next) => {
+          const counts = {};
+          Object.values(next.votes || {}).forEach((id) => {
+            if (next.players[id]?.alive) counts[id] = (counts[id] || 0) + 1;
+          });
+          if (!Object.keys(counts).length) {
+            next.narrator =
+              "Aucun vote n’a été exprimé. Le village est resté indécis.";
+            addLog(next, "Le vote se termine sans élimination.");
+          } else {
+            const highest = Math.max(...Object.values(counts));
+            const winners = Object.keys(counts).filter(
+              (id) => counts[id] === highest,
+            );
+            if (winners.length > 1) {
+              next.narrator = "Égalité ! Personne n’est éliminé aujourd’hui.";
+              addLog(next, "Le vote se termine sur une égalité.");
+            } else {
+              const eliminatedId = winners[0];
+              next.players[eliminatedId].alive = false;
+              next.narrator = `${next.players[eliminatedId].name} est éliminé·e par le village.`;
+              addLog(next, next.narrator);
+            }
+          }
+          next.phase = "day";
+          next.phaseEndsAt = 0;
+          next.votes = {};
+          checkWinner(next);
+        });
+      }
+
+      function closeVoteIfReady() {
+        if (
+          isHost &&
+          room?.phase === "vote" &&
+          livingPlayers().length > 0 &&
+          Object.keys(room.votes || {}).length >= livingPlayers().length
+        ) {
+          closeVoteNow();
+        }
+      }
+
+      function checkWinner(next) {
+        const alive = Object.values(next.players).filter(
+          (player) => player.alive,
+        );
+        const wolves = alive.filter((player) => player.role === "wolf").length;
+        const villagers = alive.length - wolves;
+        if (wolves === 0) next.winner = "village";
+        else if (wolves >= villagers) next.winner = "wolves";
+        if (next.winner) {
+          next.phase = "ended";
+          next.phaseEndsAt = 0;
+          next.narrator = `La partie est terminée : victoire des ${next.winner === "village" ? "villageois" : "Loups-garous"} !`;
+          addLog(next, next.narrator);
+        }
+      }
+
+      function resetGame() {
+        patchRoom((next) => {
+          next.started = false;
+          next.phase = "lobby";
+          next.phaseEndsAt = 0;
+          next.narrator = "Nouvelle partie : les joueurs sont conservés.";
+          next.winner = "";
+          next.actions = {};
+          next.votes = {};
+          next.witchPotions = { heal: false, poison: false };
+          next.lastSeerResult = "";
+          next.players = Object.fromEntries(
+            Object.entries(next.players).map(([id, player]) => [
+              id,
+              { ...player, role: null, alive: true, cardSeen: false },
+            ]),
+          );
+          next.log = [];
+        });
+      }
+
+      function addLog(target, text) {
+        target.log = [...(target.log || []), text].slice(-30);
+      }
+
+      function startTimerDisplay() {
+        const update = () => {
+          const timer = document.getElementById("timer");
+          if (!timer) return;
+          const seconds = Math.max(
+            0,
+            Math.ceil(((room?.phaseEndsAt || 0) - Date.now()) / 1000),
+          );
+          timer.textContent = room?.phaseEndsAt
+            ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
+            : "";
+          if (seconds === 0 && isHost && room?.phase === "vote") closeVoteNow();
+          else if (seconds === 0 && isHost && room?.phase?.startsWith("night-"))
+            advanceNightPhase();
+        };
+        update();
+        timerId = setInterval(update, 1000);
+      }
+
+      function createRoom() {
+        const error = document.getElementById("home-error");
+        const code = makeCode();
+        isHost = true;
+        sessionStorage.setItem(`thiercelieux-host-${code}`, "true");
+        playerId = "";
+        const created = {
+          code,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          started: false,
+          phase: "lobby",
+          phaseEndsAt: 0,
+          narrator: "En attente des joueurs…",
+          players: {},
+          actions: {},
+          votes: {},
+          witchPotions: { heal: false, poison: false },
+          lastSeerResult: "",
+          winner: "",
+          log: [],
+        };
+        if (firebaseDb) {
+          firebaseDb
+            .ref(`rooms/${code}`)
+            .once("value")
+            .then((snapshot) => {
+              if (snapshot.exists()) return createRoom();
+              openRoom(code, true, created);
+            })
+            .catch((err) => {
+              error.textContent = `Impossible de créer la salle : ${err.message}`;
+            });
+        } else {
+          openRoom(code, true, created);
+        }
+      }
+
+      function openRoom(code, host, initialRoom) {
+        roomCode = code.toUpperCase();
+        isHost = host;
+        history.replaceState(
+          null,
+          "",
+          `${location.pathname}?salle=${encodeURIComponent(roomCode)}`,
+        );
+        if (unsubscribe && roomRef) roomRef.off("value", unsubscribe);
+        window.removeEventListener("storage", onStorageChange);
+        if (initialRoom) {
+          room = initialRoom;
+          if (firebaseDb) {
+            roomRef = firebaseDb.ref(`rooms/${roomCode}`);
+            roomRef
+              .set(initialRoom)
+              .then(() => listenToRoom(roomCode))
+              .catch((error) =>
+                showMessage(
+                  `Impossible de créer la salle : ${error.message}`,
+                  "error",
+                ),
+              );
+          } else {
+            localStorage.setItem(
+              storageKey(roomCode),
+              JSON.stringify(initialRoom),
+            );
+            listenToRoom(roomCode);
+          }
+        } else listenToRoom(roomCode);
+      }
+
+      function initialize() {
+        if (firebaseConfigured()) {
+          try {
+            const instance = firebase.initializeApp(firebaseConfig);
+            firebaseDb = instance.database();
+            localMode = false;
+            setConnectionState("Connexion Firebase…");
+          } catch (error) {
+            showMessage(
+              `Configuration Firebase invalide : ${error.message}`,
+              "error",
+            );
+            setConnectionState("Firebase indisponible");
+          }
+        }
+        if (localMode) {
+          setConnectionState("Mode local", true);
+          modeBanner.textContent =
+            "Mode local : les onglets de ce navigateur partagent la même partie.";
+          modeBanner.classList.remove("hidden");
+          modeBanner.classList.add("local");
+        } else {
+          modeBanner.classList.add("hidden");
+        }
+        if (roomCodeFromUrl && /^[A-Za-z]{4}$/.test(roomCodeFromUrl)) {
+          isHost =
+            sessionStorage.getItem(
+              `thiercelieux-host-${roomCodeFromUrl.toUpperCase()}`,
+            ) === "true";
+          listenToRoom(roomCodeFromUrl);
+        } else render();
+      }
+
+      initialize();
+    </script>
+  </body>
+</html>
